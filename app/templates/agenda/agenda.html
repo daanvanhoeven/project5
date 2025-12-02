@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Mijn Agenda</h2>
+
+{% if agenda_items %}
+    <ul>
+        {% for afspraak in agenda_items %}
+            <li>{{ afspraak.titel }} - {{ afspraak.datum }} - {{ afspraak.tijd }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Je hebt nog geen afspraken in je agenda.</p>
+{% endif %}
+
+{% endblock %}
