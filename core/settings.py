@@ -37,8 +37,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # jouw echte app
     'app',
 ]
+
+
+    
+
 
 # settings.py
 LOGIN_REDIRECT_URL = '/agenda/mijn/'   # stuur gebruiker na inloggen naar zijn agenda
@@ -56,7 +62,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'applicatie.urls'
+ROOT_URLCONF = 'core.urls'
+WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'core.asgi.application'
+
 
 TEMPLATES = [
     {
@@ -73,7 +82,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'applicatie.wsgi.application'
+
 
 
 # Database

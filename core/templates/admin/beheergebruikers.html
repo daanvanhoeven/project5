@@ -1,0 +1,29 @@
+<h2>Gebruikersbeheer</h2>
+
+
+<tr>
+    <th>Gebruiker</th>
+    <th>Rol</th>
+    <th>Wijzig</th>
+</tr>
+
+{% for u in gebruikers %}
+<tr>
+    <td>{{ u.username }}</td>
+
+    <td>
+        <form method="post" action="{% url 'wijzig_rol' u.id %}">
+            {% csrf_token %}
+            <select name="rol">
+                <option value="admin" {% if u.userprofile.role == "admin" %}selected{% endif %}>Admin</option>
+                <option value="projectleider" {% if u.userprofile.role == "projectleider" %}selected{% endif %}>Projectleider</option>
+                <option value="vrijwilliger" {% if u.userprofile.role == "vrijwilliger" %}selected{% endif %}>Vrijwilliger</option>
+                <option value="hulpvrager" {% if u.userprofile.role == "hulpvrager" %}selected{% endif %}>Hulpvrager</option>
+            </select>
+
+            <button type="submit">Opslaan</button>
+        </form>
+    </td>
+</tr>
+{% endfor %}
+</table>

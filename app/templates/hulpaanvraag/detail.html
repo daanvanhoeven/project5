@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{{ aanvraag.titel }}</h1>
+<p>Status: {{ aanvraag.get_status_display }}</p>
+<p>{{ aanvraag.omschrijving }}</p>
+
+<h2>Berichten</h2>
+<ul>
+  {% for b in aanvraag.berichten.all %}
+  <li>{{ b.verzender }}: {{ b.boodschap }} ({{ b.verzonden_op }})</li>
+  {% empty %}
+  <li>Nog geen berichten.</li>
+  {% endfor %}
+</ul>
+
+{% if user.is_authenticated %}
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Verstuur bericht</button>
+</form>
+{% endif %}
+
+{% endblock %}

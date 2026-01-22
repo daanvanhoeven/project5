@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Komende Diensten</h1>
+<ul>
+  {% for dienst in diensten %}
+  <li>
+    <a href="{% url 'dienst_detail' dienst.id %}">{{ dienst.titel }} - {{ dienst.datum }} {{ dienst.begin_tijd }}</a>
+    ({{ dienst.spots_left }} plaatsen beschikbaar)
+  </li>
+  {% empty %}
+  <li>Geen komende diensten.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

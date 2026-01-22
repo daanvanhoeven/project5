@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Mijn hulpaanvragen</h1>
+<ul>
+  {% for a in aanvragen %}
+  <li><a href="{% url 'hulpaanvraag_detail' a.id %}">{{ a.titel or 'Geen titel' }} - {{ a.get_status_display }}</a></li>
+  {% empty %}
+  <li>Je hebt nog geen aanvragen.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
