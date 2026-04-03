@@ -1,23 +1,44 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>{{ dienst.titel }} - {{ dienst.datum }}</h1>
-<p>{{ dienst.beschrijving }}</p>
-<p>Project: {{ dienst.project }}</p>
-<p>Max personen: {{ dienst.max_personen }}</p>
-<p>Beschikbare plaatsen: {{ dienst.spots_left }}</p>
 
-{% if user.is_authenticated %}
-  {% if user_aangemeld %}
-    <p>Je status: {{ user_aangemeld.status }}</p>
-  {% else %}
-    <form method="post" action="{% url 'aanmeld_dienst' dienst.id %}">
-      {% csrf_token %}
-      <button type="submit">Aanmelden</button>
-    </form>
-  {% endif %}
+<h1>{{ dienst.titel }}</h1>
+
+<p>{{ dienst.beschrijving }}</p>
+
+<p>
+Datum: {{ dienst.datum }}<br>
+Tijd: {{ dienst.begin_tijd }} - {{ dienst.eind_tijd }}
+</p>
+
+<p>
+Beschikbare plaatsen:
+{{ dienst.spots_left }}
+</p>
+
+{% if aanmelding %}
+
+<p>
+Je bent aangemeld voor deze dienst.<br>
+Status: {{ aanmelding.status }}
+</p>
+
+<form method="post" action="{% url 'afmelden_dienst' dienst.id %}">
+    {% csrf_token %}
+    <button type="submit">
+        Afmelden
+    </button>
+</form>
+
 {% else %}
-  <p><a href="{% url 'login' %}">Log in</a> om je aan te melden.</p>
+
+<form method="post" action="{% url 'aanmelden_dienst' dienst.id %}">
+    {% csrf_token %}
+    <button type="submit">
+        Aanmelden
+    </button>
+</form>
+
 {% endif %}
 
 {% endblock %}

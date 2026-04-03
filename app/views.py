@@ -29,7 +29,7 @@ def register(request):
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            UserProfile.objects.create(user=user, role="gebruiker")
+            UserProfile.objects.create(user=user, role="vrijwilliger")
             login(request, user)
             return redirect("home")
     else:
@@ -195,3 +195,127 @@ def lijst_diensten(request):
     return render(request, "diensten/lijst.html", {
         "diensten": diensten
     })
+
+
+@login_required
+def dienst_detail(request, dienst_id):
+    dienst = get_object_or_404(Dienst, id=dienst_id)
+
+    aanmelding = Aanmelding.objects.filter(
+        volunteer=request.user,
+        dienst=dienst
+    ).first()
+
+    return render(request, "diensten/detail.html", {
+        "dienst": dienst,
+        "aanmelding": aanmelding,
+    })
+
+@login_required
+@require_POST
+def aanmelden_dienst(request, dienst_id):
+    dienst = get_object_or_404(Dienst, id=dienst_id)
+
+    # Check of gebruiker al aangemeld is
+    bestaande_aanmelding = Aanmelding.objects.filter(
+        volunteer=request.user,
+        dienst=dienst
+    ).first()
+
+    if bestaande_aanmelding:
+        return redirect("dienst_detail", dienst_id=dienst.id)
+
+    # Check of dienst vol is
+    if dienst.is_full():
+
+        Aanmelding.objects.create(
+            volunteer=request.user,
+            dienst=dienst,
+            status="waitlist"
+        )
+
+    else:
+
+        Aanmelding.objects.create(
+            volunteer=request.user,
+            dienst=dienst,
+            status="accepted"
+        )
+
+    return redirect("dienst_detail", dienst_id=dienst.id)
+
+
+
+@login_required
+@require_POST
+def afmelden_dienst(request, dienst_id):
+    dienst = get_object_or_404(Dienst, id=dienst_id)
+
+    aanmelding = Aanmelding.objects.filter(
+        volunteer=request.user,
+        dienst=dienst
+    ).first()
+
+    if aanmelding:
+        aanmelding.delete()
+
+    return redirect("dienst_detail", dienst_id=dienst.id)
+
+
+from .forms import DienstForm
+from django.contrib import messages
+
+@login_required
+def dienst_create(request):
+    if not heeft_rol(request.user, "admin"):
+        return redirect("home")
+
+    if request.method == "POST":
+        form = DienstForm(request.POST)
+        if form.is_valid():
+            dienst = form.save(commit=False)
+            dienst.created_by = request.user
+            dienst.save()
+            messages.success(request, "Dienst succesvol aangemaakt!")
+            return redirect("lijst_diensten")
+    else:
+        form = DienstForm()
+
+    return render(request, "diensten/form.html", {"form": form, "title": "Nieuwe dienst"})
+
+@login_required
+def dienst_update(request, dienst_id):
+    if not heeft_rol(request.user, "admin"):
+        return redirect("home")
+
+    dienst = get_object_or_404(Dienst, id=dienst_id)
+
+    if request.method == "POST":
+        form = DienstForm(request.POST, instance=dienst)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Dienst succesvol bijgewerkt!")
+            return redirect("dienst_detail", dienst_id=dienst.id)
+    else:
+        form = DienstForm(instance=dienst)
+
+    return render(request, "diensten/form.html", {"form": form, "title": "Bewerk dienst"})
+
+@login_required
+@require_POST
+def dienst_delete(request, dienst_id):
+    if not heeft_rol(request.user, "admin"):
+        return redirect("home")
+
+    dienst = get_object_or_404(Dienst, id=dienst_id)
+    dienst.delete()
+    messages.success(request, "Dienst succesvol verwijderd!")
+    return redirect("lijst_diensten")
+
+@login_required
+def admin_overzicht_diensten(request):
+    if not heeft_rol(request.user, "admin"):
+        return redirect("home")
+
+    diensten = Dienst.objects.all().order_by("datum", "begin_tijd")
+    return render(request, "diensten/admin_overzicht.html", {"diensten": diensten})

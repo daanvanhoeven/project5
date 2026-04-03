@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Admin: Diensten Overzicht</h1>
+
+<p>
+    <a href="{% url 'dienst_create' %}">Nieuwe dienst aanmaken</a>
+</p>
+
+<table  cellpadding="5" cellspacing="0">
+    <thead>
+        <tr>
+            <th>Titel</th>
+            <th>Project</th>
+            <th>Datum</th>
+            <th>Tijd</th>
+            <th>Max personen</th>
+            <th>Beschikbare plaatsen</th>
+            <th>Acties</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for dienst in diensten %}
+        <tr>
+            <td>{{ dienst.titel }}</td>
+            <td>{{ dienst.project.name }}</td>
+            <td>{{ dienst.datum }}</td>
+            <td>{{ dienst.begin_tijd }} - {{ dienst.eind_tijd }}</td>
+            <td>{{ dienst.max_personen }}</td>
+            <td>{{ dienst.spots_left }}</td>
+            <td>
+                <a href="{% url 'dienst_update' dienst.id %}">Bewerk</a> |
+                <form method="post" action="{% url 'dienst_delete' dienst.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" onclick="return confirm('Weet je zeker dat je deze dienst wilt verwijderen?');">Verwijder</button>
+                </form>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7">Geen diensten beschikbaar.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
