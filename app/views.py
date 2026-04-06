@@ -319,3 +319,105 @@ def admin_overzicht_diensten(request):
 
     diensten = Dienst.objects.all().order_by("datum", "begin_tijd")
     return render(request, "diensten/admin_overzicht.html", {"diensten": diensten})
+
+
+from django.contrib import messages
+
+@login_required
+@require_POST
+def hulpaanvraag_delete(request, aanvraag_id):
+
+    aanvraag = get_object_or_404(
+        HulpAanvraag,
+        id=aanvraag_id,
+        user=request.user
+    )
+
+    aanvraag.delete()
+
+    messages.success(
+        request,
+        "Je hulpaanvraag is geannuleerd."
+    )
+
+    return redirect("mijn_hulpaanvragen")
+
+
+@login_required
+def hulpaanvraag_update(request, aanvraag_id):
+
+    aanvraag = get_object_or_404(
+        HulpAanvraag,
+        id=aanvraag_id,
+        user=request.user
+    )
+
+    if request.method == "POST":
+
+        form = HulpAanvraagForm(
+            request.POST,
+            instance=aanvraag
+        )
+
+        if form.is_valid():
+
+            form.save()
+
+            messages.success(
+                request,
+                "Je hulpaanvraag is bijgewerkt."
+            )
+
+            return redirect(
+                "mijn_hulpaanvragen"
+            )
+
+    else:
+
+        form = HulpAanvraagForm(
+            instance=aanvraag
+        )
+
+    return render(
+        request,
+        "hulpaanvraag/form.html",
+        {
+            "form": form,
+            "title": "Bewerk hulpaanvraag"
+        }
+    )
+
+from .models import HulpAanvraag, Feedback
+from .forms import FeedbackForm
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.decorators import login_required
+
+
+@login_required
+def geef_feedback(request, aanvraag_id):
+    aanvraag = get_object_or_404(HulpAanvraag, id=aanvraag_id)
+
+    # alleen eigenaar mag feedback geven
+    if aanvraag.user != request.user:
+        return redirect("home")
+
+    # alleen als afgerond
+    if aanvraag.status != "afgerond":
+        return redirect("mijn_aanvragen")
+
+    # check of al feedback bestaat
+    if hasattr(aanvraag, "feedback"):
+        return redirect("mijn_aanvragen")
+
+    if request.method == "POST":
+        form = FeedbackForm(request.POST)
+        if form.is_valid():
+            feedback = form.save(commit=False)
+            feedback.hulpaanvraag = aanvraag
+            feedback.gebruiker = request.user
+            feedback.save()
+            return redirect("mijn_aanvragen")
+    else:
+        form = FeedbackForm()
+
+    return render(request, "feedback.html", {"form": form})

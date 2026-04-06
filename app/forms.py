@@ -42,7 +42,7 @@ class BerichtForm(forms.ModelForm):
 class FeedbackForm(forms.ModelForm):
     class Meta:
         model = Feedback
-        fields = ["score", "commentaar"]
+        fields = ["beoordeling", "opmerking"]
 
 
 # ====================

@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-
+from django.contrib.auth.views import LogoutView
 urlpatterns = [
     # --------------------
     # Basispagina's
@@ -25,8 +25,19 @@ urlpatterns = [
     # Hulpaanvragen
     # --------------------
     path('hulpaanvraag/nieuw/', views.create_hulpaanvraag, name='create_hulpaanvraag'),
-    path('hulpaanvraag/mijn/', views.mijn_hulpaanvragen, name='mijn_hulpaanvragen'),
-    path('hulpaanvraag/<int:aanvraag_id>/', views.hulpaanvraag_detail, name='hulpaanvraag_detail'),
+path('hulpaanvraag/mijn/', views.mijn_hulpaanvragen, name='mijn_hulpaanvragen'),
+path('hulpaanvraag/<int:aanvraag_id>/', views.hulpaanvraag_detail, name='hulpaanvraag_detail'),
+path(
+    "hulpaanvraag/<int:aanvraag_id>/bewerken/",
+    views.hulpaanvraag_update,
+    name="hulpaanvraag_update",
+),
+
+path(
+    'hulpaanvraag/<int:aanvraag_id>/annuleren/',
+    views.hulpaanvraag_delete,
+    name='hulpaanvraag_delete',
+),
     
     # --------------------
     # Gebruikersbeheer (admin)
@@ -50,4 +61,9 @@ urlpatterns = [
     path("admin/diensten/nieuw/", views.dienst_create, name="dienst_create"),
     path("admin/diensten/<int:dienst_id>/bewerken/", views.dienst_update, name="dienst_update"),
     path("admin/diensten/<int:dienst_id>/verwijderen/", views.dienst_delete, name="dienst_delete"),
+
+    path('logout/', LogoutView.as_view(), name='logout'),
+    
+
+    path("feedback/<int:aanvraag_id>/", views.geef_feedback, name="geef_feedback"),
 ]
