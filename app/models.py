@@ -92,6 +92,10 @@ class Dienst(models.Model):
         accepted = self.aanmeldingen.filter(status='accepted').count()
         return max(0, self.max_personen - accepted)
 
+    # 🔥 DIT WAS JE PROBLEEM
+    def is_full(self):
+        return self.spots_left() <= 0
+
 
 class Aanmelding(models.Model):
     volunteer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -134,7 +138,7 @@ class Feedback(models.Model):
         blank=True
     )
 
-    beoordeling = models.IntegerField(null=True, blank=True)  # 🔧 BELANGRIJK
+    beoordeling = models.IntegerField(null=True, blank=True)
 
     opmerking = models.TextField(blank=True)
 
