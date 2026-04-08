@@ -24,19 +24,17 @@ Bewerken
 
 |
 
-<form method="post"
-      action="{% url 'hulpaanvraag_delete' a.id %}"
-      style="display:inline;">
+<a href="{% url 'hulpaanvraag_delete' a.id %}" 
+   onclick="event.preventDefault(); 
+            if(confirm('Weet je zeker dat je deze aanvraag wilt annuleren?')) { 
+                document.getElementById('delete-form-{{ a.id }}').submit(); 
+            }" 
+   class="btn">
+   Annuleren
+</a>
 
-{% csrf_token %}
-
-<button type="submit"
-        onclick="return confirm('Weet je zeker dat je deze aanvraag wilt annuleren?');">
-
-Annuleren
-
-</button>
-
+<form id="delete-form-{{ a.id }}" method="post" action="{% url 'hulpaanvraag_delete' a.id %}" style="display:none;">
+    {% csrf_token %}
 </form>
 
 

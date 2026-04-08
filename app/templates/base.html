@@ -65,14 +65,14 @@
               <a class="nav-link" href="{% url 'profiel' %}"> Profiel </a>
             </li>
 
-            <form
-              method="post"
-              action="{% url 'logout' %}"
-              style="display: inline"
-            >
-              {% csrf_token %}
-              <button type="submit">Uitloggen</button>
-            </form>
+           <li class="nav-item">
+  <form method="post" action="{% url 'logout' %}" class="d-inline">
+    {% csrf_token %}
+    <button type="submit" class="nav-link btn btn-link">
+      Uitloggen
+    </button>
+  </form>
+</li>
 
             {% else %}
 

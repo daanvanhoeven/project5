@@ -8,17 +8,23 @@ from django.db.models import Count
 from django.utils import timezone
 from django.http import HttpResponseForbidden
 from django.contrib.auth.models import User
+from datetime import date, time
+
 
 from .models import (
     Agenda, ContactBericht, HulpAanvraag,
-    UserProfile, Dienst, Aanmelding, Wachtlijst
+    UserProfile, Dienst, Aanmelding, Wachtlijst,
+    Project
 )
-from .forms import ContactForm, HulpAanvraagForm, BerichtForm
 
+from .forms import (
+    ContactForm,
+    HulpAanvraagForm,
+    BerichtForm,
+    DienstForm,
+    FeedbackForm
+)
 
-# ====================
-# BASIS PAGINA'S
-# ====================
 
 def home(request):
     return render(request, "home.html")
@@ -27,14 +33,26 @@ def home(request):
 def register(request):
     if request.method == "POST":
         form = UserCreationForm(request.POST)
+
         if form.is_valid():
             user = form.save()
-            UserProfile.objects.create(user=user, role="vrijwilliger")
+
+            # Profile bestaat al via signal
+            profile = user.userprofile
+            profile.role = "vrijwilliger"
+            profile.save()
+
             login(request, user)
             return redirect("home")
+
     else:
         form = UserCreationForm()
-    return render(request, "registration/register.html", {"form": form})
+
+    return render(
+        request,
+        "registration/register.html",
+        {"form": form}
+    )
 
 
 class CustomLoginView(LoginView):
@@ -137,8 +155,14 @@ def wijzig_rol(request, user_id):
 # HULPAANVRAGEN
 # ====================
 
+
+
 @login_required
 def create_hulpaanvraag(request):
+    if not heeft_rol(request.user, "hulpvrager"):
+        # Als gebruiker geen hulpvrager is, mag hij niet aanmaken
+        return redirect("home")  # of toon een foutmelding
+
     if request.method == "POST":
         form = HulpAanvraagForm(request.POST)
         if form.is_valid():
@@ -148,6 +172,7 @@ def create_hulpaanvraag(request):
             return redirect("mijn_hulpaanvragen")
     else:
         form = HulpAanvraagForm()
+    
     return render(request, "hulpaanvraag/create.html", {"form": form})
 
 
