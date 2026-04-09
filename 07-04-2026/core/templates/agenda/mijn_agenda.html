@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Hallo {{ user.username }}</h1>
+  <h2>Jouw Agenda</h2>
+
+  {% if agenda_items %}
+    <table border="1" cellpadding="8">
+      <tr>
+        <th>Datum</th>
+        <th>Tijd</th>
+        <th>Titel</th>
+        <th>Beschrijving</th>
+      </tr>
+      {% for item in agenda_items %}
+        <tr>
+          <td>{{ item.datum }}</td>
+          <td>{{ item.begin_tijd }} - {{ item.eind_tijd }}</td>
+          <td>{{ item.titel }}</td>
+          <td>{{ item.beschrijving }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p>Je hebt nog geen afspraken in je agenda.</p>
+  {% endif %}
+{% endblock %}

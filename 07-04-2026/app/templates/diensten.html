@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Diensten</h1>
+
+{% if diensten %}
+    <ul>
+        {% for dienst in diensten %}
+            <li>
+                <strong>{{ dienst.titel }}</strong><br>
+                {{ dienst.omschrijving }}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Er zijn nog geen diensten beschikbaar.</p>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,10 @@
+Django==5.2.6
+# Additional recommended packages for next phases:
+# djangorestframework
+# django-guardian
+# django-simple-history
+# celery[redis]
+# twilio
+# django-ical
+# django-leaflet
+# django-crispy-forms

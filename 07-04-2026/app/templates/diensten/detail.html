@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{{ dienst.titel }} - {{ dienst.datum }}</h1>
+<p>{{ dienst.beschrijving }}</p>
+<p>Project: {{ dienst.project }}</p>
+<p>Max personen: {{ dienst.max_personen }}</p>
+<p>Beschikbare plaatsen: {{ dienst.spots_left }}</p>
+
+{% if user.is_authenticated %}
+  {% if user_aangemeld %}
+    <p>Je status: {{ user_aangemeld.status }}</p>
+  {% else %}
+    <form method="post" action="{% url 'aanmeld_dienst' dienst.id %}">
+      {% csrf_token %}
+      <button type="submit">Aanmelden</button>
+    </form>
+  {% endif %}
+{% else %}
+  <p><a href="{% url 'login' %}">Log in</a> om je aan te melden.</p>
+{% endif %}
+
+{% endblock %}
