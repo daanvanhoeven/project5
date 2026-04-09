@@ -296,9 +296,8 @@ def afmelden_dienst(request, dienst_id):
 from .forms import DienstForm
 from django.contrib import messages
 
-@login_required
 def dienst_create(request):
-    if not heeft_rol(request.user, "admin"):
+    if request.user.userprofile.role not in ["admin", "projectleider"]:
         return redirect("home")
 
     if request.method == "POST":
@@ -306,13 +305,24 @@ def dienst_create(request):
         if form.is_valid():
             dienst = form.save(commit=False)
             dienst.created_by = request.user
+
+        
+            aanvraag_id = request.POST.get("hulpaanvraag")
+            if aanvraag_id:
+                dienst.hulpaanvraag = HulpAanvraag.objects.get(id=aanvraag_id)
+
             dienst.save()
-            messages.success(request, "Dienst succesvol aangemaakt!")
             return redirect("lijst_diensten")
+
     else:
         form = DienstForm()
 
-    return render(request, "diensten/form.html", {"form": form, "title": "Nieuwe dienst"})
+    aanvragen = HulpAanvraag.objects.filter(status="nieuw")
+
+    return render(request, "diensten/form.html", {
+        "form": form,
+        "aanvragen": aanvragen
+    })
 
 @login_required
 def dienst_update(request, dienst_id):
@@ -532,3 +542,36 @@ def wijs_vrijwilliger_toe(request, dienst_id):
     )
 
     return redirect("dienst_detail", dienst_id=dienst.id)
+
+
+@login_required
+def projectleider_dashboard(request):
+    if not heeft_rol(request.user, "projectleider") and not heeft_rol(request.user, "admin"):
+        return redirect("home")
+
+    # diensten die niet vol zijn
+    open_diensten = Dienst.objects.all()
+
+    # vrijwilligers
+    vrijwilligers = User.objects.filter(userprofile__role="vrijwilliger")
+
+    return render(request, "projectleider/dashboard.html", {
+        "diensten": open_diensten,
+        "vrijwilligers": vrijwilligers
+    })
+
+
+
+@login_required
+def projectleider_dashboard(request):
+    if request.user.userprofile.role != "projectleider" and request.user.userprofile.role != "admin":
+        return redirect("home")
+
+    diensten = Dienst.objects.all()
+    hulpaanvragen = HulpAanvraag.objects.all()
+
+    return render(request, "projectleider/dashboard.html", {
+        "diensten": diensten,
+        "hulpaanvragen": hulpaanvragen,
+    })
+

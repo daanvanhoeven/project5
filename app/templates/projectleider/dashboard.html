@@ -1,31 +1,24 @@
 {% extends "base.html" %}
 
 {% block content %}
-
 <h1>Projectleider Dashboard</h1>
 
-<h2>Waarschuwingen</h2>
+<h3>Diensten</h3>
 
-<ul>
-  {% for w in waarschuwingen %}
-    <li style="color:red;">{{ w }}</li>
-  {% empty %}
-    <li>Geen problemen </li>
+<table class="table">
+  <tr>
+    <th>Titel</th>
+    <th>Datum</th>
+    <th>Plekken over</th>
+  </tr>
+
+  {% for dienst in diensten %}
+  <tr>
+    <td>{{ dienst.titel }}</td>
+    <td>{{ dienst.datum }}</td>
+    <td>{{ dienst.spots_left }}</td>
+  </tr>
   {% endfor %}
-</ul>
-
-<h2>Diensten</h2>
-
-<ul>
-  {% for d in diensten %}
-    <li>
-      {{ d.titel }} ({{ d.datum }})
-    </li>
-  {% endfor %}
-</ul>
-
-<a href="{% url 'vrijwilligers_filter' %}">
-  Bekijk vrijwilligers
-</a>
+</table>
 
 {% endblock %}

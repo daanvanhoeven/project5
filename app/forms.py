@@ -53,12 +53,13 @@ class DienstForm(forms.ModelForm):
         model = Dienst
         fields = [
             "project",
+            "hulpaanvraag",
             "titel",
             "beschrijving",
             "datum",
             "begin_tijd",
             "eind_tijd",
-            "max_personen",
+            "max_personen"
         ]
         widgets = {
             "datum": forms.DateInput(attrs={"type": "date"}),

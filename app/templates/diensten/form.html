@@ -1,13 +1,9 @@
-{% extends 'base.html' %}
-
-{% block content %}
-<h1>{{ title }}</h1>
-
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Opslaan</button>
-</form>
-
-<a href="{% url 'lijst_diensten' %}">Terug naar diensten</a>
-{% endblock %}
+<label>Koppel aan hulpaanvraag:</label>
+<select name="hulpaanvraag" class="form-control">
+  <option value="">Geen</option>
+  {% for a in aanvragen %}
+    <option value="{{ a.id }}">
+      {{ a.titel }} - {{ a.user }}
+    </option>
+  {% endfor %}
+</select>\

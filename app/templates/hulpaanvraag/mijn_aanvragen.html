@@ -4,6 +4,10 @@
 
 <h1>Mijn hulpaanvragen</h1>
 
+<a href="{% url 'create_hulpaanvraag' %}" class="btn btn-primary mb-3">
+  Nieuwe hulpaanvraag
+</a>
+
 <ul>
 
 {% for a in aanvragen %}

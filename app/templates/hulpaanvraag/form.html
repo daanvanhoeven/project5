@@ -1,21 +1,12 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
-
-<h1>{{ title }}</h1>
+<h1>Nieuwe dienst</h1>
 
 <form method="post">
-
-{% csrf_token %}
-
-{{ form.as_p }}
-
-<button type="submit">
-
-Opslaan
-
-</button>
-
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit" class="btn btn-success">Opslaan</button>
 </form>
 
 {% endblock %}
