@@ -77,7 +77,10 @@ class Dienst(models.Model):
     datum = models.DateField()
     begin_tijd = models.TimeField()
     eind_tijd = models.TimeField()
-    max_personen = models.IntegerField(default=1)
+
+    min_personen = models.IntegerField(default=1)
+    max_personen = models.IntegerField(default=3)
+
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -92,7 +95,7 @@ class Dienst(models.Model):
         accepted = self.aanmeldingen.filter(status='accepted').count()
         return max(0, self.max_personen - accepted)
 
-    # 🔥 DIT WAS JE PROBLEEM
+
     def is_full(self):
         return self.spots_left() <= 0
 
@@ -129,7 +132,13 @@ class Bericht(models.Model):
 
 
 class Feedback(models.Model):
-    hulpaanvraag = models.ForeignKey(HulpAanvraag, on_delete=models.CASCADE)
+    hulpaanvraag = models.ForeignKey(
+    HulpAanvraag,
+    on_delete=models.CASCADE,
+    related_name="diensten",
+    null=True,
+    blank=True
+)
 
     gebruiker = models.ForeignKey(
         settings.AUTH_USER_MODEL,

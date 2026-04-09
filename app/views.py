@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.http import HttpResponseForbidden
 from django.contrib.auth.models import User
 from datetime import date, time
+from .models import Skill
 
 
 from .models import (
@@ -231,9 +232,14 @@ def dienst_detail(request, dienst_id):
         dienst=dienst
     ).first()
 
+    vrijwilligers = User.objects.filter(
+        userprofile__role="vrijwilliger"
+    )
+
     return render(request, "diensten/detail.html", {
         "dienst": dienst,
         "aanmelding": aanmelding,
+        "vrijwilligers": vrijwilligers
     })
 
 @login_required
@@ -446,3 +452,83 @@ def geef_feedback(request, aanvraag_id):
         form = FeedbackForm()
 
     return render(request, "feedback.html", {"form": form})
+
+@login_required
+def projectleider_dashboard(request):
+    # Check of gebruiker projectleider of admin is
+    if not heeft_rol(request.user, "projectleider") and not heeft_rol(request.user, "admin"):
+        return redirect("home")
+
+    diensten = Dienst.objects.all()
+    waarschuwingen = []
+
+    for dienst in diensten:
+        aantal = dienst.aanmeldingen.filter(status="accepted").count()
+
+        if aantal < dienst.min_personen:
+            waarschuwingen.append(
+                f"{dienst.titel} heeft te weinig vrijwilligers ({aantal})"
+            )
+        elif aantal >= dienst.max_personen:
+            waarschuwingen.append(
+                f"{dienst.titel} zit vol ({aantal})"
+            )
+
+    context = {
+        "diensten": diensten,
+        "waarschuwingen": waarschuwingen
+    }
+
+    return render(request, "projectleider/dashboard.html", context)
+
+@login_required
+def vrijwilligers_filter(request):
+    if not heeft_rol(request.user, "projectleider"):
+        return redirect("home")
+
+    skill_id = request.GET.get("skill")
+
+    vrijwilligers = User.objects.filter(
+        userprofile__role="vrijwilliger"
+    )
+
+    if skill_id:
+        vrijwilligers = vrijwilligers.filter(
+            userprofile__skills__id=skill_id
+        )
+
+    skills = Skill.objects.all()
+
+    return render(request, "projectleider/vrijwilligers.html", {
+        "vrijwilligers": vrijwilligers,
+        "skills": skills
+    })
+
+@login_required
+@require_POST
+def wijs_vrijwilliger_toe(request, dienst_id):
+    if not heeft_rol(request.user, "projectleider"):
+        return redirect("home")
+
+    dienst = get_object_or_404(Dienst, id=dienst_id)
+
+    user_id = request.POST.get("user_id")
+
+    vrijwilliger = get_object_or_404(User, id=user_id)
+
+    # check of al bestaat
+    bestaande = Aanmelding.objects.filter(
+        volunteer=vrijwilliger,
+        dienst=dienst
+    ).first()
+
+    if bestaande:
+        return redirect("dienst_detail", dienst_id=dienst.id)
+
+    Aanmelding.objects.create(
+        volunteer=vrijwilliger,
+        dienst=dienst,
+        status="accepted"
+    )
+
+    return redirect("dienst_detail", dienst_id=dienst.id)

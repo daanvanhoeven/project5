@@ -27,21 +27,11 @@
         </button>
 
         <div class="collapse navbar-collapse" id="navbarNav">
+          <!-- LINKERKANT -->
           <ul class="navbar-nav me-auto">
+            <!-- Altijd zichtbaar -->
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'home' %}"> Home </a>
-            </li>
-
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'lijst_diensten' %}">
-                Diensten
-              </a>
-            </li>
-
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'create_hulpaanvraag' %}">
-                Hulpaanvraag
-              </a>
+              <a class="nav-link" href="{% url 'home' %}">Home</a>
             </li>
 
             <li class="nav-item">
@@ -50,14 +40,88 @@
               </a>
             </li>
 
-            {% if user.is_superuser %}
+            {% if user.is_authenticated %}
+
+            <!-- Vrijwilliger -->
+            {% if role == "vrijwilliger" %}
             <li class="nav-item">
-              <a class="nav-link" href="/admin/"> Admin </a>
+              <a class="nav-link" href="{% url 'lijst_diensten' %}">
+                Diensten
+              </a>
             </li>
             {% endif %}
+
+            <!-- Hulpvrager -->
+            {% if role == "hulpvrager" %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'lijst_diensten' %}">
+                Diensten
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'mijn_hulpaanvragen' %}">
+                Hulpaanvraag
+              </a>
+            </li>
+            {% endif %}
+
+            <!-- Projectleider -->
+            {% if role == "projectleider" %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'lijst_diensten' %}">
+                Diensten
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'mijn_hulpaanvragen' %}">
+                Hulpaanvraag
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'projectleider_dashboard' %}">
+                Projectleider
+              </a>
+            </li>
+            {% endif %}
+
+            <!-- Admin -->
+            {% if user.userprofile.role == "admin" %}
+
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'lijst_diensten' %}">
+                Diensten
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'mijn_hulpaanvragen' %}">
+                Hulpaanvraag
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'projectleider_dashboard' %}">
+                Projectleider
+              </a>
+            </li>
+
+            <!-- JOUW dashboard -->
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'dashboard' %}"> Dashboard </a>
+            </li>
+
+            <!-- DJANGO ADMIN -->
+            <li class="nav-item">
+              <a class="nav-link" href="/admin/"> Admin Panel </a>
+            </li>
+
+            {% endif %} {% endif %}
           </ul>
 
-          <!-- Rechterkant -->
+          <!-- RECHTERKANT -->
           <ul class="navbar-nav">
             {% if user.is_authenticated %}
 
@@ -65,14 +129,14 @@
               <a class="nav-link" href="{% url 'profiel' %}"> Profiel </a>
             </li>
 
-           <li class="nav-item">
-  <form method="post" action="{% url 'logout' %}" class="d-inline">
-    {% csrf_token %}
-    <button type="submit" class="nav-link btn btn-link">
-      Uitloggen
-    </button>
-  </form>
-</li>
+            <li class="nav-item">
+              <form method="post" action="{% url 'logout' %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="nav-link btn btn-link">
+                  Uitloggen
+                </button>
+              </form>
+            </li>
 
             {% else %}
 
@@ -91,7 +155,7 @@
     </nav>
 
     <!-- Content -->
-    <div class="container mt-4">{% block content %} {% endblock %}</div>
+    <div class="container mt-4">{% block content %}{% endblock %}</div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   </body>

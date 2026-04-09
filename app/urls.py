@@ -66,4 +66,21 @@ path(
     
 
     path("feedback/<int:aanvraag_id>/", views.geef_feedback, name="geef_feedback"),
+    # Projectleider
+path(
+    "projectleider/",
+    views.projectleider_dashboard,
+    name="projectleider_dashboard"
+),
+
+path(
+    "projectleider/vrijwilligers/",
+    views.vrijwilligers_filter,
+    name="vrijwilligers_filter"
+),
+path(
+    "diensten/<int:dienst_id>/toewijzen/",
+    views.wijs_vrijwilliger_toe,
+    name="wijs_vrijwilliger_toe"
+),
 ]
