@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>{{ dienst.titel }}</h1>
+
+<p>{{ dienst.beschrijving }}</p>
+
+<p>
+Datum: {{ dienst.datum }}<br>
+Tijd: {{ dienst.begin_tijd }} - {{ dienst.eind_tijd }}
+</p>
+
+<p>
+Beschikbare plaatsen:
+{{ dienst.spots_left }}
+</p>
+
+{% if required_skills %}
+<p>
+Benodigde skills:
+{{ required_skills|join:", " }}
+</p>
+{% endif %}
+
+{% if aanmelding %}
+
+<p>
+Je bent aangemeld voor deze dienst.<br>
+Status: {{ aanmelding.status }}
+</p>
+
+<form method="post" action="{% url 'afmelden_dienst' dienst.id %}">
+    {% csrf_token %}
+    <button type="submit">
+        Afmelden
+    </button>
+</form>
+
+{% else %}
+
+<form method="post" action="{% url 'aanmelden_dienst' dienst.id %}">
+    {% csrf_token %}
+    <button type="submit">
+        Aanmelden
+    </button>
+</form>
+
+{% endif %}
+{% if role == "projectleider" %}
+
+<div class="row g-4 mt-1">
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h3 class="h5">Bezetting</h3>
+        <p class="mb-2">
+          Ingepland: {{ dienst_status.accepted_count }} / {{ dienst.max_personen }}
+        </p>
+        {% for melding in dienst_status.meldingen %}
+          <div class="alert alert-{{ melding.niveau }} py-2">
+            {{ melding.tekst }}
+          </div>
+        {% empty %}
+          <div class="alert alert-success py-2">
+            Deze dienst heeft nu geen meldingen.
+          </div>
+        {% endfor %}
+
+        <h4 class="h6 mt-4">Toegewezen vrijwilligers</h4>
+        <ul class="list-group mb-3">
+          {% for item in toegewezen_vrijwilligers %}
+            <li class="list-group-item">
+              {{ item.volunteer.username }}
+            </li>
+          {% empty %}
+            <li class="list-group-item text-muted">Nog niemand ingepland</li>
+          {% endfor %}
+        </ul>
+
+        <h4 class="h6">Wachtlijst</h4>
+        <ul class="list-group">
+          {% for item in wachtlijst %}
+            <li class="list-group-item">
+              {{ item.volunteer.username }}
+            </li>
+          {% empty %}
+            <li class="list-group-item text-muted">Geen wachtlijst</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h3 class="h5">Vrijwilliger toewijzen</h3>
+        <p class="text-muted">
+          Vrijwilligers met skill- en beschikbaarheidsmatch staan bovenaan.
+        </p>
+
+        <form method="post" action="{% url 'wijs_vrijwilliger_toe' dienst.id %}" class="mb-4">
+          {% csrf_token %}
+          <select name="user_id" class="form-select mb-2">
+            {% for item in kandidaat_vrijwilligers %}
+              {% if not item.already_assigned %}
+                <option value="{{ item.user.id }}">
+                  {{ item.user.username }}
+                  {% if item.overall_match %} - goede match{% elif item.skill_match %} - skills kloppen, check beschikbaarheid{% else %} - beperkte match{% endif %}
+                </option>
+              {% endif %}
+            {% endfor %}
+          </select>
+
+          <button type="submit" class="btn btn-primary">
+            Toewijzen
+          </button>
+        </form>
+
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Vrijwilliger</th>
+                <th>Skills</th>
+                <th>Beschikbaarheid</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in kandidaat_vrijwilligers %}
+                <tr>
+                  <td>{{ item.user.username }}</td>
+                  <td>
+                    {% if item.skills %}
+                      {{ item.skills|join:", " }}
+                    {% else %}
+                      <span class="text-muted">Geen skills</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if item.availability_match %}
+                      <span class="badge bg-success">Past</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Onbekend of geen match</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if item.already_assigned %}
+                      <span class="badge bg-dark">Al gekoppeld</span>
+                    {% elif item.overall_match %}
+                      <span class="badge bg-success">Sterke match</span>
+                    {% elif item.skill_match %}
+                      <span class="badge bg-warning text-dark">Skills matchen</span>
+                    {% else %}
+                      <span class="badge bg-light text-dark">Beperkte match</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-4">Geen vrijwilligers beschikbaar.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+
+
+
+
+
+
+{% endblock %}

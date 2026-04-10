@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Gebruikersbeheer</h2>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th>Gebruiker</th>
+          <th>E-mail</th>
+          <th>Rol</th>
+          <th>Status</th>
+          <th>Acties</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in gebruikers %}
+          <tr>
+            <td>{{ u.username }}</td>
+            <td>{{ u.email|default:"-" }}</td>
+            <td>
+              <form method="post" action="{% url 'wijzig_rol' u.id %}" class="d-flex gap-2">
+                {% csrf_token %}
+                <select name="rol" class="form-select form-select-sm">
+                  <option value="admin" {% if u.userprofile.role == "admin" %}selected{% endif %}>Admin</option>
+                  <option value="projectleider" {% if u.userprofile.role == "projectleider" %}selected{% endif %}>Projectleider</option>
+                  <option value="vrijwilliger" {% if u.userprofile.role == "vrijwilliger" %}selected{% endif %}>Vrijwilliger</option>
+                  <option value="hulpvrager" {% if u.userprofile.role == "hulpvrager" %}selected{% endif %}>Hulpvrager</option>
+                </select>
+                <button type="submit" class="btn btn-sm btn-primary">Opslaan</button>
+              </form>
+            </td>
+            <td>
+              {% if u.is_active %}
+                <span class="badge bg-success">Actief</span>
+              {% else %}
+                <span class="badge bg-secondary">Inactief</span>
+              {% endif %}
+            </td>
+            <td>
+              <form method="post" action="{% url 'toggle_user_active' u.id %}">
+                {% csrf_token %}
+                {% if u.is_active %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Deactiveren</button>
+                {% else %}
+                  <button type="submit" class="btn btn-sm btn-outline-success">Activeren</button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">Geen gebruikers gevonden.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Relevante diensten</h2>
+
+<ul class="list-group">
+  {% for d in diensten %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      
+      <div>
+        <strong>{{ d.titel }}</strong><br>
+        {{ d.datum }} | {{ d.begin_tijd }} - {{ d.eind_tijd }}
+      </div>
+
+      <form method="post" action="{% url 'aanmelden_dienst' d.id %}">
+        {% csrf_token %}
+        <button class="btn btn-success btn-sm">
+          Aanmelden
+        </button>
+      </form>
+
+    </li>
+  {% empty %}
+    <li class="list-group-item">
+      Geen matchende diensten
+    </li>
+  {% endfor %}
+</ul>
+
+{% endblock %}

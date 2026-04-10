@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Komende Diensten</h1>
+<ul>
+
+{% if role == "admin" or role == "projectleider" %}
+  <a href="{% url 'dienst_create' %}" class="btn btn-success mb-3">
+    + Nieuwe dienst
+  </a>
+{% endif %}
+
+
+
+
+  {% for dienst in diensten %}
+  <li>
+    <a href="{% url 'dienst_detail' dienst.id %}">{{ dienst.titel }} - {{ dienst.datum }} {{ dienst.begin_tijd }}</a>
+    ({{ dienst.spots_left }} plaatsen beschikbaar)
+  </li>
+  {% empty %}
+  <li>Geen komende diensten.</li>
+  {% if role == "admin" or role == "projectleider" %}
+<a href="{% url 'dienst_create' %}" class="btn btn-success">
+  Nieuwe dienst
+</a>
+
+{% endif %}
+  {% endfor %}
+</ul>
+{% endblock %}

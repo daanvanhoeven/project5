@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Home
+{% endblock %}
+
+{% block content %}
+
+<h1>Welkom bij Vrijwilliger.nl</h1>
+
+<p>
+Op deze website kun je vrijwilligerswerk vinden,
+je agenda bekijken en contact opnemen met organisaties.
+</p>
+
+<a href="{% url 'lijst_diensten' %}" class="btn btn-primary">
+Bekijk diensten
+</a>
+
+{% if role == "vrijwilliger" %}
+
+<a href="{% url 'beschikbaarheid' %}" class="btn btn-outline-primary ms-2">
+Vul beschikbaarheid in
+</a>
+
+<h2>Jouw relevante diensten</h2>
+
+<ul class="list-group">
+  {% for d in relevante_diensten %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      
+      <div>
+        <strong>{{ d.titel }}</strong><br>
+        {{ d.datum }} | {{ d.begin_tijd }} - {{ d.eind_tijd }}
+      </div>
+
+      {% if d.id in aangemeld_ids %}
+        <span class="badge bg-success">Aangemeld</span>
+      {% else %}
+        <form method="post" action="{% url 'aanmelden_dienst' d.id %}">
+          {% csrf_token %}
+          <button class="btn btn-success btn-sm">
+            Aanmelden
+          </button>
+        </form>
+      {% endif %}
+
+    </li>
+  {% empty %}
+    <li class="list-group-item">
+      Geen relevante diensten gevonden
+    </li>
+  {% endfor %}
+</ul>
+
+{% endif %}
+
+
+{% endblock %}

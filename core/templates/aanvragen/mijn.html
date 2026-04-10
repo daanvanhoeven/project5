@@ -1,0 +1,13 @@
+<h2>Mijn aanvragen</h2>
+<a href="{% url 'nieuwe_aanvraag' %}">Nieuwe aanvraag</a>
+
+<ul>
+    {% for a in aanvragen %}
+        <li>
+            {{ a.beschrijving }} - Status: {{ a.status }}
+            <a href="{% url 'wijzig_aanvraag' a.id %}">Wijzig</a>
+        </li>
+    {% empty %}
+        <li>Geen aanvragen</li>
+    {% endfor %}
+</ul>

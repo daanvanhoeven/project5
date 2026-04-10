@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="mb-1">Projectleider dashboard</h1>
+    <p class="text-muted mb-0">
+      Bekijk waar bezetting ontbreekt, welke diensten bijna vol zitten en welke vrijwilligers je gericht kunt benaderen.
+    </p>
+  </div>
+  <a href="{% url 'vrijwilligers_filter' %}" class="btn btn-outline-primary">
+    Vrijwilligers met skills bekijken
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Onderbezet</div>
+        <div class="display-6">{{ te_weinig|length }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Bijna vol</div>
+        <div class="display-6">{{ bijna_vol|length }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Vol</div>
+        <div class="display-6">{{ vol|length }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>Meldingen</h2>
+<div class="mb-4">
+  {% for melding in meldingen %}
+    <div class="alert alert-{{ melding.niveau }} d-flex justify-content-between align-items-center">
+      <div>
+        <strong>{{ melding.dienst.titel }}</strong><br>
+        {{ melding.tekst }}
+      </div>
+      <a href="{% url 'dienst_detail' melding.dienst.id %}" class="btn btn-sm btn-outline-dark">
+        Open dienst
+      </a>
+    </div>
+  {% empty %}
+    <div class="alert alert-success mb-0">
+      Er zijn nu geen openstaande meldingen voor de bezetting.
+    </div>
+  {% endfor %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h4">Diensten met bezetting</h2>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Dienst</th>
+                <th>Project</th>
+                <th>Bezetting</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in dienst_statussen %}
+                <tr>
+                  <td>
+                    <strong>{{ item.dienst.titel }}</strong><br>
+                    <span class="text-muted">{{ item.dienst.datum }} | {{ item.dienst.begin_tijd }} - {{ item.dienst.eind_tijd }}</span>
+                  </td>
+                  <td>{{ item.dienst.project.name }}</td>
+                  <td>{{ item.accepted_count }} / {{ item.dienst.max_personen }}</td>
+                  <td>
+                    {% if item.vol %}
+                      <span class="badge bg-secondary">Vol</span>
+                    {% elif item.bijna_vol %}
+                      <span class="badge bg-warning text-dark">Bijna vol</span>
+                    {% elif item.onderbezet %}
+                      <span class="badge bg-danger">Onderbezet</span>
+                    {% else %}
+                      <span class="badge bg-success">Op schema</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <a href="{% url 'dienst_detail' item.dienst.id %}" class="btn btn-sm btn-primary">
+                      Beheren
+                    </a>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted py-4">Er zijn nog geen diensten.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h4">Vrijwilligers met skills</h2>
+        <ul class="list-group list-group-flush">
+          {% for item in vrijwilligers_overzicht|slice:":8" %}
+            <li class="list-group-item px-0">
+              <strong>{{ item.user.username }}</strong><br>
+              {% if item.skills %}
+                <span class="text-muted">{{ item.skills|join:", " }}</span>
+              {% else %}
+                <span class="text-muted">Nog geen skills ingevuld</span>
+              {% endif %}
+            </li>
+          {% empty %}
+            <li class="list-group-item px-0 text-muted">Geen vrijwilligers gevonden.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h4">Acties</h2>
+        <div class="d-grid gap-2">
+          <a href="{% url 'dienst_create' %}" class="btn btn-success">Nieuwe dienst aanmaken</a>
+          <a href="{% url 'vrijwilligers_filter' %}" class="btn btn-outline-primary">Filter op skill</a>
+          <a href="{% url 'lijst_diensten' %}" class="btn btn-outline-secondary">Alle diensten bekijken</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

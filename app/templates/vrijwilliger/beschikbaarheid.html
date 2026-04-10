@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-5">
+    <h2>Beschikbaarheid invullen</h2>
+    <p class="text-muted">
+      Vul hier een terugkerend weekmoment in.
+      {% if has_period_fields %}
+        Dit blok wordt elke week gebruikt tussen de gekozen start- en einddatum.
+      {% else %}
+        Jouw database draait nog op de oude versie, dus dit werkt nu zonder periode.
+      {% endif %}
+    </p>
+
+    <form method="post" class="card card-body shadow-sm">
+      {% csrf_token %}
+
+      {% for field in form %}
+        <div class="mb-3">
+          <label for="{{ field.id_for_label }}" class="form-label">
+            {{ field.label }}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+            <div class="text-danger small mt-1">
+              {{ field.errors|join:", " }}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <button class="btn btn-primary">
+        Opslaan
+      </button>
+    </form>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="mb-0">Jouw weekblokken</h2>
+      <a href="{% url 'relevante_diensten' %}" class="btn btn-outline-primary btn-sm">
+        Bekijk relevante diensten
+      </a>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>Dag</th>
+              <th>Tijd</th>
+              <th>Periode</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for beschikbaarheid in beschikbaarheden %}
+              <tr>
+                <td>{{ beschikbaarheid.weekday_label }}</td>
+                <td>{{ beschikbaarheid.start_time }} - {{ beschikbaarheid.end_time }}</td>
+                <td>
+                  {% if beschikbaarheid.valid_from and beschikbaarheid.valid_until %}
+                    {{ beschikbaarheid.valid_from }} t/m {{ beschikbaarheid.valid_until }}
+                  {% else %}
+                    Doorlopend
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  <form method="post" action="{% url 'beschikbaarheid_verwijderen' beschikbaarheid.id %}">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-danger">
+                      Verwijderen
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-4">
+                  Je hebt nog geen terugkerende beschikbaarheid ingevuld.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

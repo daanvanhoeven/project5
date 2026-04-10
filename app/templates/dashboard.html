@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Admin Dashboard</h1>
+
+<p>Totaal aanvragen: {{ totaal }}</p>
+<p>Afgerond: {{ afgerond }}</p>
+
+<h3>Top vrijwilligers</h3>
+<ul>
+  {% for v in top_vrijwilligers %}
+    <li>User ID: {{ v.user }} - {{ v.aantal }} afspraken</li>
+  {% endfor %}
+</ul>
+
+{% endblock %}
