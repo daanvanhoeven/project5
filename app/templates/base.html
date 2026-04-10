@@ -56,6 +56,15 @@
                 </li>
               {% endif %}
 
+                <!-- Vrijwilliger -->
+              {% if user.userprofile.role == "vrijwilliger" %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'beschikbaarheid' %}">
+                    beschikbaarheid
+                  </a>
+                </li>
+              {% endif %}
+
               <!-- Hulpvrager -->
               {% if user.userprofile.role == "hulpvrager" %}
                 <li class="nav-item">

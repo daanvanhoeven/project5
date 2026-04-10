@@ -20,6 +20,10 @@
   {{ form.as_p }}
   <button type="submit">Verstuur bericht</button>
 </form>
+
+<a href="{% url 'stuur_bericht' aanvraag.id %}" class="btn btn-warning">
+  Stel vraag
+</a>
 {% endif %}
 
 {% endblock %}

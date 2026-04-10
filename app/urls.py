@@ -69,4 +69,12 @@ urlpatterns = [
     # Logout
     # --------------------
     path('logout/', LogoutView.as_view(), name='logout'),
+
+    path("beschikbaarheid/", views.beschikbaarheid_invullen, name="beschikbaarheid"),
+path("diensten/relevant/", views.relevante_diensten, name="relevante_diensten"),
+path(
+    "agenda/export/",
+    views.export_agenda,
+    name="export_agenda"
+), 
 ]

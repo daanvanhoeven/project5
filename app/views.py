@@ -10,7 +10,17 @@ from django.http import HttpResponseForbidden
 from django.contrib.auth.models import User
 from datetime import date, time
 from .models import Skill
-
+from .models import Availability
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.models import User
+from .models import Dienst, Aanmelding
+from .utils import heeft_rol
+from django.core.mail import send_mail
+from django.conf import settings
 
 from .models import (
     Agenda, ContactBericht, HulpAanvraag,
@@ -27,8 +37,41 @@ from .forms import (
 )
 
 
+@login_required
 def home(request):
-    return render(request, "home.html")
+
+    relevante_diensten = None
+
+    # Alleen voor vrijwilligers
+    if request.user.userprofile.role == "vrijwilliger":
+
+        beschikbaarheden = Availability.objects.filter(
+            volunteer=request.user
+        )
+
+        diensten = Dienst.objects.none()
+
+        for b in beschikbaarheden:
+            diensten = diensten | Dienst.objects.filter(
+                datum__week_day=b.weekday,
+                begin_tijd__gte=b.start_time,
+                eind_tijd__lte=b.end_time
+            )
+
+        aangemeld_ids = Aanmelding.objects.filter(
+            volunteer=request.user
+        ).values_list("dienst_id", flat=True)
+
+        relevante_diensten = diensten
+
+    return render(request, "home.html", {
+        "relevante_diensten": relevante_diensten,
+        "aangemeld_ids": aangemeld_ids if request.user.userprofile.role == "vrijwilliger" else []
+    })
+
+
+
+
 
 
 def register(request):
@@ -465,31 +508,36 @@ def geef_feedback(request, aanvraag_id):
 
 @login_required
 def projectleider_dashboard(request):
-    # Check of gebruiker projectleider of admin is
     if not heeft_rol(request.user, "projectleider") and not heeft_rol(request.user, "admin"):
         return redirect("home")
 
     diensten = Dienst.objects.all()
-    waarschuwingen = []
+
+    te_weinig = []
+    bijna_vol = []
+    vol = []
 
     for dienst in diensten:
         aantal = dienst.aanmeldingen.filter(status="accepted").count()
 
         if aantal < dienst.min_personen:
-            waarschuwingen.append(
-                f"{dienst.titel} heeft te weinig vrijwilligers ({aantal})"
-            )
+            te_weinig.append(dienst)
+
+        elif aantal == dienst.max_personen - 1:
+            bijna_vol.append(dienst)
+
         elif aantal >= dienst.max_personen:
-            waarschuwingen.append(
-                f"{dienst.titel} zit vol ({aantal})"
-            )
+            vol.append(dienst)
 
-    context = {
+    vrijwilligers = User.objects.filter(userprofile__role="vrijwilliger")
+
+    return render(request, "projectleider/dashboard.html", {
         "diensten": diensten,
-        "waarschuwingen": waarschuwingen
-    }
-
-    return render(request, "projectleider/dashboard.html", context)
+        "vrijwilligers": vrijwilligers,
+        "te_weinig": te_weinig,
+        "bijna_vol": bijna_vol,
+        "vol": vol,
+    })
 
 @login_required
 def vrijwilligers_filter(request):
@@ -514,6 +562,38 @@ def vrijwilligers_filter(request):
         "skills": skills
     })
 
+def stuur_status_mail(aanmelding):
+    vrijwilliger = aanmelding.volunteer
+    dienst = aanmelding.dienst
+
+    subject = "Update over je aanmelding"
+
+    message = f"""
+Beste {vrijwilliger.username},
+
+De status van je aanmelding voor de dienst:
+
+{dienst.titel}
+
+is gewijzigd naar:
+
+{aanmelding.status}
+
+Datum: {dienst.datum}
+Tijd: {dienst.start_tijd}
+
+Met vriendelijke groet,
+Vrijwilliger.nl
+"""
+
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [vrijwilliger.email],
+        fail_silently=True,
+    )
+
 @login_required
 @require_POST
 def wijs_vrijwilliger_toe(request, dienst_id):
@@ -535,43 +615,149 @@ def wijs_vrijwilliger_toe(request, dienst_id):
     if bestaande:
         return redirect("dienst_detail", dienst_id=dienst.id)
 
-    Aanmelding.objects.create(
+    # nieuwe aanmelding maken
+    aanmelding = Aanmelding.objects.create(
         volunteer=vrijwilliger,
         dienst=dienst,
         status="accepted"
     )
 
+    # MAIL STUREN
+    stuur_status_mail(aanmelding)
+
     return redirect("dienst_detail", dienst_id=dienst.id)
 
-
 @login_required
-def projectleider_dashboard(request):
-    if not heeft_rol(request.user, "projectleider") and not heeft_rol(request.user, "admin"):
+def vrijwilligers_filter(request):
+    if request.user.userprofile.role != "projectleider":
         return redirect("home")
 
-    # diensten die niet vol zijn
-    open_diensten = Dienst.objects.all()
+    skill_id = request.GET.get("skill")
 
-    # vrijwilligers
     vrijwilligers = User.objects.filter(userprofile__role="vrijwilliger")
 
-    return render(request, "projectleider/dashboard.html", {
-        "diensten": open_diensten,
-        "vrijwilligers": vrijwilligers
-    })
+    if skill_id:
+        vrijwilligers = vrijwilligers.filter(userprofile__skills=skill_id)
 
+    skills = Skill.objects.all()
+
+    return render(request, "projectleider/vrijwilligers.html", {
+        "vrijwilligers": vrijwilligers,
+        "skills": skills
+    })
 
 
 @login_required
-def projectleider_dashboard(request):
-    if request.user.userprofile.role != "projectleider" and request.user.userprofile.role != "admin":
+def beschikbaarheid_invullen(request):
+    if request.user.userprofile.role != "vrijwilliger":
         return redirect("home")
 
-    diensten = Dienst.objects.all()
-    hulpaanvragen = HulpAanvraag.objects.all()
+    if request.method == "POST":
+        weekday = request.POST.get("weekday")
+        start = request.POST.get("start")
+        eind = request.POST.get("eind")
 
-    return render(request, "projectleider/dashboard.html", {
-        "diensten": diensten,
-        "hulpaanvragen": hulpaanvragen,
+        # DEBUG (optioneel)
+        print(weekday, start, eind)
+
+        Availability.objects.create(
+            volunteer=request.user,
+            weekday=weekday,
+            start_time=start,
+            end_time=eind
+        )
+
+        return redirect("home")
+
+    return render(request, "vrijwilliger/beschikbaarheid.html")
+
+
+@login_required
+def relevante_diensten(request):
+    beschikbaarheden = Availability.objects.filter(volunteer=request.user)
+
+    diensten = Dienst.objects.none()
+
+    for b in beschikbaarheden:
+        diensten = diensten | Dienst.objects.filter(
+            datum__week_day=b.weekday,
+            begin_tijd__gte=b.start_time,
+            eind_tijd__lte=b.end_time
+        )
+
+    return render(request, "vrijwilliger/relevante_diensten.html", {
+        "diensten": diensten
     })
 
+def stuur_status_mail(aanmelding):
+    vrijwilliger = aanmelding.vrijwilliger
+    dienst = aanmelding.dienst
+
+    subject = "Update over je aanmelding"
+
+    message = f"""
+Beste {vrijwilliger.username},
+
+De status van je aanmelding voor de dienst:
+
+{dienst.titel}
+
+is gewijzigd naar:
+
+{aanmelding.status}
+
+Datum: {dienst.datum}
+Tijd: {dienst.start_tijd}
+
+Met vriendelijke groet,
+Vrijwilliger.nl
+"""
+
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [vrijwilliger.email],
+        fail_silently=True,
+    )
+
+    from django.http import HttpResponse
+from datetime import datetime
+
+
+@login_required
+def export_agenda(request):
+    aanmeldingen = Aanmelding.objects.filter(
+        vrijwilliger=request.user,
+        status="accepted"
+    )
+
+    response = HttpResponse(content_type="text/calendar")
+    response["Content-Disposition"] = 'attachment; filename="mijn_agenda.ics"'
+
+    response.write("BEGIN:VCALENDAR\n")
+    response.write("VERSION:2.0\n")
+
+    for aanmelding in aanmeldingen:
+        dienst = aanmelding.dienst
+
+        start = datetime.combine(
+            dienst.datum,
+            dienst.start_tijd
+        ).strftime("%Y%m%dT%H%M%S")
+
+        end = datetime.combine(
+            dienst.datum,
+            dienst.eind_tijd
+        ).strftime("%Y%m%dT%H%M%S")
+
+        response.write("BEGIN:VEVENT\n")
+        response.write(f"SUMMARY:{dienst.titel}\n")
+        response.write(f"LOCATION:{dienst.locatie}\n")
+        response.write(f"DTSTART:{start}\n")
+        response.write(f"DTEND:{end}\n")
+        response.write("END:VEVENT\n")
+
+    response.write("END:VCALENDAR\n")
+
+    return response

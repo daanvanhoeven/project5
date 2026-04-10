@@ -17,4 +17,39 @@ je agenda bekijken en contact opnemen met organisaties.
 Bekijk diensten
 </a>
 
+{% if user.userprofile.role == "vrijwilliger" %}
+
+<h2>Jouw relevante diensten</h2>
+
+<ul class="list-group">
+  {% for d in relevante_diensten %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      
+      <div>
+        <strong>{{ d.titel }}</strong><br>
+        {{ d.datum }} | {{ d.begin_tijd }} - {{ d.eind_tijd }}
+      </div>
+
+      {% if d.id in aangemeld_ids %}
+        <span class="badge bg-success">Aangemeld</span>
+      {% else %}
+        <form method="post" action="{% url 'aanmelden_dienst' d.id %}">
+          {% csrf_token %}
+          <button class="btn btn-success btn-sm">
+            Aanmelden
+          </button>
+        </form>
+      {% endif %}
+
+    </li>
+  {% empty %}
+    <li class="list-group-item">
+      Geen relevante diensten gevonden
+    </li>
+  {% endfor %}
+</ul>
+
+{% endif %}
+
+
 {% endblock %}

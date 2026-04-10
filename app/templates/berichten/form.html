@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Vraag stellen</h2>
+
+<form method="post">
+  {% csrf_token %}
+  <textarea name="boodschap" class="form-control" required></textarea>
+
+  <button class="btn btn-primary mt-2">
+    Verstuur
+  </button>
+</form>
+
+{% endblock %}

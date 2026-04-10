@@ -1,24 +1,27 @@
 {% extends "base.html" %}
-
-{% block content %}
-<h1>Projectleider Dashboard</h1>
-
-<h3>Diensten</h3>
-
-<table class="table">
-  <tr>
-    <th>Titel</th>
-    <th>Datum</th>
-    <th>Plekken over</th>
-  </tr>
-
-  {% for dienst in diensten %}
-  <tr>
-    <td>{{ dienst.titel }}</td>
-    <td>{{ dienst.datum }}</td>
-    <td>{{ dienst.spots_left }}</td>
-  </tr>
+<h2> Te weinig vrijwilligers</h2>
+<ul>
+  {% for d in te_weinig %}
+    <li>{{ d.titel }}</li>
+  {% empty %}
+    <li>Geen problemen</li>
   {% endfor %}
-</table>
+</ul>
 
-{% endblock %}
+<h2> Bijna vol</h2>
+<ul>
+  {% for d in bijna_vol %}
+    <li>{{ d.titel }}</li>
+  {% empty %}
+    <li>Geen</li>
+  {% endfor %}
+</ul>
+
+<h2> Vol</h2>
+<ul>
+  {% for d in vol %}
+    <li>{{ d.titel }}</li>
+  {% empty %}
+    <li>Geen</li>
+  {% endfor %}
+</ul>
