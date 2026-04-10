@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Vrijwilligers filter</h1>
+
+<form method="get">
+  <select name="skill" class="form-control">
+    <option value="">Alle skills</option>
+    {% for skill in skills %}
+      <option value="{{ skill.id }}">{{ skill.name }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-primary mt-2">Filter</button>
+</form>
+
+<ul>
+  {% for v in vrijwilligers %}
+    <li>{{ v.username }}</li>
+  {% endfor %}
+</ul>
+
+{% endblock %}

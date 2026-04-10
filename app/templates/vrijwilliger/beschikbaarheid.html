@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Beschikbaarheid invullen</h2>
+
+<form method="post">
+  {% csrf_token %}
+
+  <label>Dag:</label>
+  <select name="weekday" class="form-control" required>
+    <option value="">-- Kies dag --</option>
+    <option value="2">Maandag</option>
+    <option value="3">Dinsdag</option>
+    <option value="4">Woensdag</option>
+    <option value="5">Donderdag</option>
+    <option value="6">Vrijdag</option>
+    <option value="7">Zaterdag</option>
+    <option value="1">Zondag</option>
+  </select>
+
+  <br>
+
+  <label>Starttijd:</label>
+  <input type="time" name="start" class="form-control" required>
+
+  <br>
+
+  <label>Eindtijd:</label>
+  <input type="time" name="eind" class="form-control" required>
+
+  <br>
+
+  <button class="btn btn-primary">
+    Opslaan
+  </button>
+</form>
+
+{% endblock %}

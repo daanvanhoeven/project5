@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+<h2> Te weinig vrijwilligers</h2>
+<ul>
+  {% for d in te_weinig %}
+    <li>{{ d.titel }}</li>
+  {% empty %}
+    <li>Geen problemen</li>
+  {% endfor %}
+</ul>
+
+<h2> Bijna vol</h2>
+<ul>
+  {% for d in bijna_vol %}
+    <li>{{ d.titel }}</li>
+  {% empty %}
+    <li>Geen</li>
+  {% endfor %}
+</ul>
+
+<h2> Vol</h2>
+<ul>
+  {% for d in vol %}
+    <li>{{ d.titel }}</li>
+  {% empty %}
+    <li>Geen</li>
+  {% endfor %}
+</ul>

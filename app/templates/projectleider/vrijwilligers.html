@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Vrijwilligers</h1>
+
+<form method="get">
+  <select name="skill">
+    <option value="">-- kies skill --</option>
+    {% for s in skills %}
+      <option value="{{ s.id }}">{{ s.name }}</option>
+    {% endfor %}
+  </select>
+
+  <button type="submit">Filter</button>
+</form>
+
+<ul>
+  {% for v in vrijwilligers %}
+    <li>
+      {{ v.username }}
+    </li>
+  {% empty %}
+    <li>Geen vrijwilligers gevonden</li>
+  {% endfor %}
+</ul>
+
+{% endblock %}

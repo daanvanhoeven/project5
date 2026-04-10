@@ -1,5 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Mijn profiel
+{% endblock %}
+
+{% block content %}
+
 <h1>Mijn profiel</h1>
 
-<p><strong>Gebruikersnaam:</strong> {{ user.username }}</p>
-<p><strong>E-mail:</strong> {{ user.email }}</p>
-<p><strong>Rol:</strong> {{ user.userprofile.role }}</p>
+<p>
+Hier kun je jouw accountgegevens bekijken.
+</p>
+
+<a href="{% url 'export_agenda' %}" class="btn btn-success">
+    Download mijn agenda
+</a>
+<p>
+<strong>Gebruikersnaam:</strong> {{ user.username }}
+</p>
+
+<p>
+<strong>E-mail:</strong> {{ user.email }}
+</p>
+
+<p>
+<strong>Rol:</strong> {{ user.userprofile.role }}
+</p>
+
+<br>
+
+<a href="{% url 'home' %}" class="btn btn-primary">
+Terug naar home
+</a>
+
+{% endblock %}

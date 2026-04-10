@@ -8,33 +8,95 @@ from django.db.models import Count
 from django.utils import timezone
 from django.http import HttpResponseForbidden
 from django.contrib.auth.models import User
+from datetime import date, time
+from .models import Skill
+from .models import Availability
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.models import User
+from .models import Dienst, Aanmelding
+from .utils import heeft_rol
+from django.core.mail import send_mail
+from django.conf import settings
 
 from .models import (
     Agenda, ContactBericht, HulpAanvraag,
-    UserProfile, Dienst, Aanmelding, Wachtlijst
+    UserProfile, Dienst, Aanmelding, Wachtlijst,
+    Project
 )
-from .forms import ContactForm, HulpAanvraagForm, BerichtForm
+
+from .forms import (
+    ContactForm,
+    HulpAanvraagForm,
+    BerichtForm,
+    DienstForm,
+    FeedbackForm
+)
 
 
-# ====================
-# BASIS PAGINA'S
-# ====================
-
+@login_required
 def home(request):
-    return render(request, "home.html")
+
+    relevante_diensten = None
+
+    # Alleen voor vrijwilligers
+    if request.user.userprofile.role == "vrijwilliger":
+
+        beschikbaarheden = Availability.objects.filter(
+            volunteer=request.user
+        )
+
+        diensten = Dienst.objects.none()
+
+        for b in beschikbaarheden:
+            diensten = diensten | Dienst.objects.filter(
+                datum__week_day=b.weekday,
+                begin_tijd__gte=b.start_time,
+                eind_tijd__lte=b.end_time
+            )
+
+        aangemeld_ids = Aanmelding.objects.filter(
+            volunteer=request.user
+        ).values_list("dienst_id", flat=True)
+
+        relevante_diensten = diensten
+
+    return render(request, "home.html", {
+        "relevante_diensten": relevante_diensten,
+        "aangemeld_ids": aangemeld_ids if request.user.userprofile.role == "vrijwilliger" else []
+    })
+
+
+
+
 
 
 def register(request):
     if request.method == "POST":
         form = UserCreationForm(request.POST)
+
         if form.is_valid():
             user = form.save()
-            UserProfile.objects.create(user=user, role="gebruiker")
+
+            # Profile bestaat al via signal
+            profile = user.userprofile
+            profile.role = "vrijwilliger"
+            profile.save()
+
             login(request, user)
             return redirect("home")
+
     else:
         form = UserCreationForm()
-    return render(request, "registration/register.html", {"form": form})
+
+    return render(
+        request,
+        "registration/register.html",
+        {"form": form}
+    )
 
 
 class CustomLoginView(LoginView):
@@ -137,8 +199,14 @@ def wijzig_rol(request, user_id):
 # HULPAANVRAGEN
 # ====================
 
+
+
 @login_required
 def create_hulpaanvraag(request):
+    if not heeft_rol(request.user, "hulpvrager"):
+        # Als gebruiker geen hulpvrager is, mag hij niet aanmaken
+        return redirect("home")  # of toon een foutmelding
+
     if request.method == "POST":
         form = HulpAanvraagForm(request.POST)
         if form.is_valid():
@@ -148,6 +216,7 @@ def create_hulpaanvraag(request):
             return redirect("mijn_hulpaanvragen")
     else:
         form = HulpAanvraagForm()
+    
     return render(request, "hulpaanvraag/create.html", {"form": form})
 
 
@@ -195,3 +264,500 @@ def lijst_diensten(request):
     return render(request, "diensten/lijst.html", {
         "diensten": diensten
     })
+
+
+@login_required
+def dienst_detail(request, dienst_id):
+    dienst = get_object_or_404(Dienst, id=dienst_id)
+
+    aanmelding = Aanmelding.objects.filter(
+        volunteer=request.user,
+        dienst=dienst
+    ).first()
+
+    vrijwilligers = User.objects.filter(
+        userprofile__role="vrijwilliger"
+    )
+
+    return render(request, "diensten/detail.html", {
+        "dienst": dienst,
+        "aanmelding": aanmelding,
+        "vrijwilligers": vrijwilligers
+    })
+
+@login_required
+@require_POST
+def aanmelden_dienst(request, dienst_id):
+    dienst = get_object_or_404(Dienst, id=dienst_id)
+
+    # Check of gebruiker al aangemeld is
+    bestaande_aanmelding = Aanmelding.objects.filter(
+        volunteer=request.user,
+        dienst=dienst
+    ).first()
+
+    if bestaande_aanmelding:
+        return redirect("dienst_detail", dienst_id=dienst.id)
+
+    # Check of dienst vol is
+    if dienst.is_full():
+
+        Aanmelding.objects.create(
+            volunteer=request.user,
+            dienst=dienst,
+            status="waitlist"
+        )
+
+    else:
+
+        Aanmelding.objects.create(
+            volunteer=request.user,
+            dienst=dienst,
+            status="accepted"
+        )
+
+    return redirect("dienst_detail", dienst_id=dienst.id)
+
+
+
+@login_required
+@require_POST
+def afmelden_dienst(request, dienst_id):
+    dienst = get_object_or_404(Dienst, id=dienst_id)
+
+    aanmelding = Aanmelding.objects.filter(
+        volunteer=request.user,
+        dienst=dienst
+    ).first()
+
+    if aanmelding:
+        aanmelding.delete()
+
+    return redirect("dienst_detail", dienst_id=dienst.id)
+
+
+from .forms import DienstForm
+from django.contrib import messages
+
+def dienst_create(request):
+    if request.user.userprofile.role not in ["admin", "projectleider"]:
+        return redirect("home")
+
+    if request.method == "POST":
+        form = DienstForm(request.POST)
+        if form.is_valid():
+            dienst = form.save(commit=False)
+            dienst.created_by = request.user
+
+        
+            aanvraag_id = request.POST.get("hulpaanvraag")
+            if aanvraag_id:
+                dienst.hulpaanvraag = HulpAanvraag.objects.get(id=aanvraag_id)
+
+            dienst.save()
+            return redirect("lijst_diensten")
+
+    else:
+        form = DienstForm()
+
+    aanvragen = HulpAanvraag.objects.filter(status="nieuw")
+
+    return render(request, "diensten/form.html", {
+        "form": form,
+        "aanvragen": aanvragen
+    })
+
+@login_required
+def dienst_update(request, dienst_id):
+    if not heeft_rol(request.user, "admin"):
+        return redirect("home")
+
+    dienst = get_object_or_404(Dienst, id=dienst_id)
+
+    if request.method == "POST":
+        form = DienstForm(request.POST, instance=dienst)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Dienst succesvol bijgewerkt!")
+            return redirect("dienst_detail", dienst_id=dienst.id)
+    else:
+        form = DienstForm(instance=dienst)
+
+    return render(request, "diensten/form.html", {"form": form, "title": "Bewerk dienst"})
+
+@login_required
+@require_POST
+def dienst_delete(request, dienst_id):
+    if not heeft_rol(request.user, "admin"):
+        return redirect("home")
+
+    dienst = get_object_or_404(Dienst, id=dienst_id)
+    dienst.delete()
+    messages.success(request, "Dienst succesvol verwijderd!")
+    return redirect("lijst_diensten")
+
+@login_required
+def admin_overzicht_diensten(request):
+    if not heeft_rol(request.user, "admin"):
+        return redirect("home")
+
+    diensten = Dienst.objects.all().order_by("datum", "begin_tijd")
+    return render(request, "diensten/admin_overzicht.html", {"diensten": diensten})
+
+
+from django.contrib import messages
+
+@login_required
+@require_POST
+def hulpaanvraag_delete(request, aanvraag_id):
+
+    aanvraag = get_object_or_404(
+        HulpAanvraag,
+        id=aanvraag_id,
+        user=request.user
+    )
+
+    aanvraag.delete()
+
+    messages.success(
+        request,
+        "Je hulpaanvraag is geannuleerd."
+    )
+
+    return redirect("mijn_hulpaanvragen")
+
+
+@login_required
+def hulpaanvraag_update(request, aanvraag_id):
+
+    aanvraag = get_object_or_404(
+        HulpAanvraag,
+        id=aanvraag_id,
+        user=request.user
+    )
+
+    if request.method == "POST":
+
+        form = HulpAanvraagForm(
+            request.POST,
+            instance=aanvraag
+        )
+
+        if form.is_valid():
+
+            form.save()
+
+            messages.success(
+                request,
+                "Je hulpaanvraag is bijgewerkt."
+            )
+
+            return redirect(
+                "mijn_hulpaanvragen"
+            )
+
+    else:
+
+        form = HulpAanvraagForm(
+            instance=aanvraag
+        )
+
+    return render(
+        request,
+        "hulpaanvraag/form.html",
+        {
+            "form": form,
+            "title": "Bewerk hulpaanvraag"
+        }
+    )
+
+from .models import HulpAanvraag, Feedback
+from .forms import FeedbackForm
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.decorators import login_required
+
+
+@login_required
+def geef_feedback(request, aanvraag_id):
+    aanvraag = get_object_or_404(HulpAanvraag, id=aanvraag_id)
+
+    # alleen eigenaar mag feedback geven
+    if aanvraag.user != request.user:
+        return redirect("home")
+
+    # alleen als afgerond
+    if aanvraag.status != "afgerond":
+        return redirect("mijn_aanvragen")
+
+    # check of al feedback bestaat
+    if hasattr(aanvraag, "feedback"):
+        return redirect("mijn_aanvragen")
+
+    if request.method == "POST":
+        form = FeedbackForm(request.POST)
+        if form.is_valid():
+            feedback = form.save(commit=False)
+            feedback.hulpaanvraag = aanvraag
+            feedback.gebruiker = request.user
+            feedback.save()
+            return redirect("mijn_aanvragen")
+    else:
+        form = FeedbackForm()
+
+    return render(request, "feedback.html", {"form": form})
+
+@login_required
+def projectleider_dashboard(request):
+    if not heeft_rol(request.user, "projectleider") and not heeft_rol(request.user, "admin"):
+        return redirect("home")
+
+    diensten = Dienst.objects.all()
+
+    te_weinig = []
+    bijna_vol = []
+    vol = []
+
+    for dienst in diensten:
+        aantal = dienst.aanmeldingen.filter(status="accepted").count()
+
+        if aantal < dienst.min_personen:
+            te_weinig.append(dienst)
+
+        elif aantal == dienst.max_personen - 1:
+            bijna_vol.append(dienst)
+
+        elif aantal >= dienst.max_personen:
+            vol.append(dienst)
+
+    vrijwilligers = User.objects.filter(userprofile__role="vrijwilliger")
+
+    return render(request, "projectleider/dashboard.html", {
+        "diensten": diensten,
+        "vrijwilligers": vrijwilligers,
+        "te_weinig": te_weinig,
+        "bijna_vol": bijna_vol,
+        "vol": vol,
+    })
+
+@login_required
+def vrijwilligers_filter(request):
+    if not heeft_rol(request.user, "projectleider"):
+        return redirect("home")
+
+    skill_id = request.GET.get("skill")
+
+    vrijwilligers = User.objects.filter(
+        userprofile__role="vrijwilliger"
+    )
+
+    if skill_id:
+        vrijwilligers = vrijwilligers.filter(
+            userprofile__skills__id=skill_id
+        )
+
+    skills = Skill.objects.all()
+
+    return render(request, "projectleider/vrijwilligers.html", {
+        "vrijwilligers": vrijwilligers,
+        "skills": skills
+    })
+
+def stuur_status_mail(aanmelding):
+    vrijwilliger = aanmelding.volunteer
+    dienst = aanmelding.dienst
+
+    subject = "Update over je aanmelding"
+
+    message = f"""
+Beste {vrijwilliger.username},
+
+De status van je aanmelding voor de dienst:
+
+{dienst.titel}
+
+is gewijzigd naar:
+
+{aanmelding.status}
+
+Datum: {dienst.datum}
+Tijd: {dienst.start_tijd}
+
+Met vriendelijke groet,
+Vrijwilliger.nl
+"""
+
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [vrijwilliger.email],
+        fail_silently=True,
+    )
+
+@login_required
+@require_POST
+def wijs_vrijwilliger_toe(request, dienst_id):
+    if not heeft_rol(request.user, "projectleider"):
+        return redirect("home")
+
+    dienst = get_object_or_404(Dienst, id=dienst_id)
+
+    user_id = request.POST.get("user_id")
+
+    vrijwilliger = get_object_or_404(User, id=user_id)
+
+    # check of al bestaat
+    bestaande = Aanmelding.objects.filter(
+        volunteer=vrijwilliger,
+        dienst=dienst
+    ).first()
+
+    if bestaande:
+        return redirect("dienst_detail", dienst_id=dienst.id)
+
+    # nieuwe aanmelding maken
+    aanmelding = Aanmelding.objects.create(
+        volunteer=vrijwilliger,
+        dienst=dienst,
+        status="accepted"
+    )
+
+    # MAIL STUREN
+    stuur_status_mail(aanmelding)
+
+    return redirect("dienst_detail", dienst_id=dienst.id)
+
+@login_required
+def vrijwilligers_filter(request):
+    if request.user.userprofile.role != "projectleider":
+        return redirect("home")
+
+    skill_id = request.GET.get("skill")
+
+    vrijwilligers = User.objects.filter(userprofile__role="vrijwilliger")
+
+    if skill_id:
+        vrijwilligers = vrijwilligers.filter(userprofile__skills=skill_id)
+
+    skills = Skill.objects.all()
+
+    return render(request, "projectleider/vrijwilligers.html", {
+        "vrijwilligers": vrijwilligers,
+        "skills": skills
+    })
+
+
+@login_required
+def beschikbaarheid_invullen(request):
+    if request.user.userprofile.role != "vrijwilliger":
+        return redirect("home")
+
+    if request.method == "POST":
+        weekday = request.POST.get("weekday")
+        start = request.POST.get("start")
+        eind = request.POST.get("eind")
+
+        # DEBUG (optioneel)
+        print(weekday, start, eind)
+
+        Availability.objects.create(
+            volunteer=request.user,
+            weekday=weekday,
+            start_time=start,
+            end_time=eind
+        )
+
+        return redirect("home")
+
+    return render(request, "vrijwilliger/beschikbaarheid.html")
+
+
+@login_required
+def relevante_diensten(request):
+    beschikbaarheden = Availability.objects.filter(volunteer=request.user)
+
+    diensten = Dienst.objects.none()
+
+    for b in beschikbaarheden:
+        diensten = diensten | Dienst.objects.filter(
+            datum__week_day=b.weekday,
+            begin_tijd__gte=b.start_time,
+            eind_tijd__lte=b.end_time
+        )
+
+    return render(request, "vrijwilliger/relevante_diensten.html", {
+        "diensten": diensten
+    })
+
+def stuur_status_mail(aanmelding):
+    vrijwilliger = aanmelding.vrijwilliger
+    dienst = aanmelding.dienst
+
+    subject = "Update over je aanmelding"
+
+    message = f"""
+Beste {vrijwilliger.username},
+
+De status van je aanmelding voor de dienst:
+
+{dienst.titel}
+
+is gewijzigd naar:
+
+{aanmelding.status}
+
+Datum: {dienst.datum}
+Tijd: {dienst.start_tijd}
+
+Met vriendelijke groet,
+Vrijwilliger.nl
+"""
+
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [vrijwilliger.email],
+        fail_silently=True,
+    )
+
+    from django.http import HttpResponse
+from datetime import datetime
+
+
+@login_required
+def export_agenda(request):
+    aanmeldingen = Aanmelding.objects.filter(
+        vrijwilliger=request.user,
+        status="accepted"
+    )
+
+    response = HttpResponse(content_type="text/calendar")
+    response["Content-Disposition"] = 'attachment; filename="mijn_agenda.ics"'
+
+    response.write("BEGIN:VCALENDAR\n")
+    response.write("VERSION:2.0\n")
+
+    for aanmelding in aanmeldingen:
+        dienst = aanmelding.dienst
+
+        start = datetime.combine(
+            dienst.datum,
+            dienst.start_tijd
+        ).strftime("%Y%m%dT%H%M%S")
+
+        end = datetime.combine(
+            dienst.datum,
+            dienst.eind_tijd
+        ).strftime("%Y%m%dT%H%M%S")
+
+        response.write("BEGIN:VEVENT\n")
+        response.write(f"SUMMARY:{dienst.titel}\n")
+        response.write(f"LOCATION:{dienst.locatie}\n")
+        response.write(f"DTSTART:{start}\n")
+        response.write(f"DTEND:{end}\n")
+        response.write("END:VEVENT\n")
+
+    response.write("END:VCALENDAR\n")
+
+    return response

@@ -1,0 +1,9 @@
+<label>Koppel aan hulpaanvraag:</label>
+<select name="hulpaanvraag" class="form-control">
+  <option value="">Geen</option>
+  {% for a in aanvragen %}
+    <option value="{{ a.id }}">
+      {{ a.titel }} - {{ a.user }}
+    </option>
+  {% endfor %}
+</select>\
